@@ -2,6 +2,7 @@
 #define INIT_H
 
 #include "stm32f10x.h"
+#include "sdft.h"
 
 void DMA_init(void);
 void GPIO_init(void);

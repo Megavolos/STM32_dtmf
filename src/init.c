@@ -1,5 +1,6 @@
 #include "init.h"
 #define BUFFER_SIZE 147
+//extern SDFT_VARS sdft_vars;
 uint16_t ADC_DATA[BUFFER_SIZE];
 void DMA_init(void)
 {
@@ -7,7 +8,7 @@ void DMA_init(void)
 	DMA1_Channel1->CPAR = (uint32_t) &ADC1->DR;		// memory address where stored ADC result
 	DMA1_Channel1->CMAR = (uint32_t) ADC_DATA;		// place where ADC samples put. 
 	DMA1_Channel1->CNDTR = BUFFER_SIZE; 				  //length of ADC_DATA[] array
-	DMA1_Channel1->CCR |=  DMA_CCR1_TCIE|DMA_CCR1_HTIE; //прерывание по половине буфера и по окончанию
+	DMA1_Channel1->CCR |=  DMA_CCR1_TCIE; //прерывание по половине буфера и по окончанию
 	DMA1_Channel1->CCR &= ~DMA_CCR1_DIR; 					//Указываем направление передачи данных, из периферии в память
 	DMA1_Channel1->CCR &= ~DMA_CCR1_PINC; 				//Адрес периферии не инкрементируем после каждой пересылки
 	DMA1_Channel1->CCR |= DMA_CCR1_MINC; 					//Адрес памяти инкрементируем после каждой пересылки.
@@ -36,10 +37,20 @@ void TIM_init(void)
 void GPIO_init(void)
 {
 	RCC->APB2ENR |= RCC_APB2ENR_IOPCEN; // вкл такты GPIOC 
+	RCC->APB2ENR |= RCC_APB2ENR_IOPDEN;
 	GPIOC->CRL &= ~GPIO_CRL_CNF;
 	GPIOC->CRL &= ~GPIO_CRL_MODE0;
 	GPIOC->CRL |= GPIO_CRL_MODE6_1;
 	GPIOC->CRL &= ~GPIO_CRL_CNF6;
+	GPIOC->CRL |= GPIO_CRL_MODE7_1;
+	GPIOC->CRL &= ~GPIO_CRL_CNF7;
+	
+	GPIOD->CRH &= ~GPIO_CRH_CNF;
+	GPIOD->CRH &= ~GPIO_CRL_CNF;
+	GPIOD->CRH |= GPIO_CRH_MODE13_1;
+	GPIOD->CRH &= ~GPIO_CRH_CNF13;
+	GPIOD->CRL |= GPIO_CRL_MODE6_1;
+	GPIOD->CRL &= ~GPIO_CRL_CNF6;
 	
 }
 

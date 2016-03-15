@@ -7,18 +7,20 @@
 #define N	147	//Block size
 #define MULT 65536
 extern uint16_t ADC_DATA[N];
-
+char det;
 int coeff[8];
 int32_t Q1[8];
 int32_t Q2[8];
 float sine;
 float cosine;
-int32_t module[8],module_prev,result;
+uint32_t module[8],module_prev,result;
 unsigned char i;
 unsigned char num[8];
 unsigned char first_half[8];
 unsigned char digit[100];
 unsigned char digit_pos;
+unsigned char wait[8];
+unsigned char ok[8];
 unsigned char detected_prev[8];
 float level=800000;
 float level2=800000;
@@ -60,9 +62,9 @@ void ProcessSample(unsigned char freq_num, unsigned char sample)
   Q2[freq_num] = Q1[freq_num];
   Q1[freq_num] = Q0/MULT;
 }
-int32_t GetMagnitudeSquared(unsigned char freq_num)
+uint32_t GetMagnitudeSquared(unsigned char freq_num)
 {
-  int32_t result;
+  uint32_t result;
 	result = Q1[freq_num] * Q1[freq_num] + Q2[freq_num] * Q2[freq_num] - Q1[freq_num] * Q2[freq_num] * (coeff[freq_num]/MULT);
   return result;
 }
@@ -112,6 +114,33 @@ unsigned char CompareModule(unsigned char freq_num)
 			return 0;
 		}
 }
+void Sync_Detect(unsigned char freq_num)
+{
+	if (detected[freq_num]==1)
+	{
+		if (!(wait[freq_num]||detected_prev[freq_num]))
+		{
+			ok[freq_num]=1;
+			wait[freq_num]=1;
+		}
+		else
+		{
+			ok[freq_num]=0;
+		}
+	}
+	else
+	{
+		if (wait[freq_num]&&detected_prev[freq_num])
+		{
+			ok[freq_num]=1;
+			wait[freq_num]=0;
+		}
+		else
+		{
+			ok[freq_num]=0;
+		}
+	}
+}
 void DMA1_Channel1_IRQHandler ()
 {
 	
@@ -160,37 +189,45 @@ void DMA1_Channel1_IRQHandler ()
 		
 		//if (detected[3]) {GPIOC->BSRR= GPIO_BSRR_BS6;} else {GPIOC->BSRR= GPIO_BSRR_BR6;}
 		//if (detected[7]) GPIOC->ODR^= GPIO_ODR_ODR7;
-		
-		if (detected[4]) //18300
+		Sync_Detect(0);
+		Sync_Detect(1);
+		Sync_Detect(2);
+		Sync_Detect(3);
+		Sync_Detect(4);
+		Sync_Detect(5);
+		Sync_Detect(6);
+		Sync_Detect(7);
+		if (ok[4]&&(!wait[4])) //18300
 		{
 			
-			if (detected[0]) {digit[digit_pos]='0'; digit_pos++;}
-			if (detected[1]) {digit[digit_pos]='1'; digit_pos++;}
-			if (detected[2]) {digit[digit_pos]='2'; digit_pos++;}
-			if (detected[3]) {digit[digit_pos]='3'; digit_pos++;GPIOD->ODR^= GPIO_ODR_ODR13;}
+			if (ok[0]) {digit[digit_pos]='0'; digit_pos++;}
+			if (ok[1]) {digit[digit_pos]='1'; digit_pos++;}
+			if (ok[2]) {digit[digit_pos]='2'; digit_pos++;}
+			if (ok[3]&&(!wait[3])) {digit[digit_pos]='3'; digit_pos++;GPIOD->ODR^= GPIO_ODR_ODR13;}
 		}
 	
-		if (detected[5]) //18700
+		if (ok[5]) //18700
 		{
-			if (detected[0]) {digit[digit_pos]='4'; digit_pos++;}
-			if (detected[1]) {digit[digit_pos]='5'; digit_pos++;}
-			if (detected[2]) {digit[digit_pos]='6'; digit_pos++;}
-			if (detected[3]) {digit[digit_pos]='7'; digit_pos++;}
+			if (ok[0]) {digit[digit_pos]='4'; digit_pos++;}
+			if (ok[1]) {digit[digit_pos]='5'; digit_pos++;}
+			if (ok[2]) {digit[digit_pos]='6'; digit_pos++;}
+			if (ok[3]) {digit[digit_pos]='7'; digit_pos++;}
 		}
 		
-		if (detected[6]) //18700
+		if (ok[6]) //18700
 		{
-			if (detected[0]) {digit[digit_pos]='8'; digit_pos++;}
-			if (detected[1]) {digit[digit_pos]='9'; digit_pos++;}
-			if (detected[2]) {digit[digit_pos]='A'; digit_pos++;}
-			if (detected[3]) {digit[digit_pos]='B'; digit_pos++;}
+			if (ok[0]) {digit[digit_pos]='8'; digit_pos++;}
+			if (ok[1]) {digit[digit_pos]='9'; digit_pos++;}
+			if (ok[2]) {digit[digit_pos]='A'; digit_pos++;}
+			if (ok[3]) {digit[digit_pos]='B'; digit_pos++;}
 		}
-		if (detected[7]) //18700
+		if (ok[7]&&(!wait[7])) //18700
 		{
-			if (detected[0]) {digit[digit_pos]='C'; digit_pos++;}
-			if (detected[1]) {digit[digit_pos]='D'; digit_pos++;}
-			if (detected[2]) {digit[digit_pos]='E'; digit_pos++;}
-			if (detected[3]) {digit[digit_pos]='F'; digit_pos++;GPIOD->ODR^= GPIO_ODR_ODR6;}
+			if (ok[0]) {digit[digit_pos]='C'; digit_pos++;}
+			if (ok[1]) {digit[digit_pos]='D'; digit_pos++;}
+			if (ok[2]) {digit[digit_pos]='E'; digit_pos++;}
+			if (ok[3]&&(!wait[3])) {digit[digit_pos]='F'; digit_pos++;GPIOD->ODR^= GPIO_ODR_ODR6;}
+			
 		}
 		if (digit_pos>=16) digit_pos=0;
 		n++;
